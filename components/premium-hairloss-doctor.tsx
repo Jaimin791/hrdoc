@@ -91,52 +91,55 @@ const PremiumHairLossDoctor = () => {
     }
   ];
 
-// Part 3: All functions (unchanged)
-const getImageHash = useCallback((imageData: string) => {
-  let hash = 0;
-  for (let i = 0; i < imageData.length; i++) {
-    const char = imageData.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash);
-}, []);
-
-
-  const handleImageUpload = (event) => {
-    const file = event.target.files[0];
+  const getImageHash = useCallback((imageData: string): number => {
+    let hash = 0;
+    for (let i = 0; i < imageData.length; i++) {
+      const char = imageData.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash);
+  }, []);
+  
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       setSelectedImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreviewUrl(reader.result);
+        if (reader.result) {
+          setPreviewUrl(reader.result.toString());
+        }
       };
+      reader.onerror = () => console.error('File reading has failed');
       reader.readAsDataURL(file);
       setAnalysisState('idle');
       setAnalysisResults(null);
     }
   };
-
+  
   const handleUploadSubmit = useCallback(() => {
     setAnalysisState('analyzing');
-    
+  
     setTimeout(() => {
-      const imageHash = getImageHash(previewUrl);
-      const resultIndex = imageHash % analysisOptions.length;
-      
-      setAnalysisState('complete');
-      setAnalysisResults(analysisOptions[resultIndex]);
+      if (previewUrl) {
+        const imageHash = getImageHash(previewUrl);
+        const resultIndex = imageHash % analysisOptions.length;
+  
+        setAnalysisState('complete');
+        setAnalysisResults(analysisOptions[resultIndex]);
+      }
     }, 3000);
   }, [previewUrl, getImageHash, analysisOptions]);
-
-  const handleAnswerSelect = (answer) => {
-    setAnswers(prev => ({
+  
+  const handleAnswerSelect = (answer: string) => {
+    setAnswers((prev) => ({
       ...prev,
-      [questions[currentQuestion].id]: answer
+      [questions[currentQuestion].id]: answer,
     }));
-
+  
     if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
+      setCurrentQuestion((prev) => prev + 1);
     } else {
       const answerHash = Object.values(answers).join('').length;
       const resultIndex = answerHash % analysisOptions.length;
@@ -144,7 +147,7 @@ const getImageHash = useCallback((imageData: string) => {
       setAnalysisState('complete');
     }
   };
-
+  
   const renderPhotoAnalysisContent = () => {
     if (analysisState === 'analyzing') {
       return (
@@ -154,7 +157,7 @@ const getImageHash = useCallback((imageData: string) => {
         </div>
       );
     }
-    
+  
     if (analysisState === 'complete') {
       return (
         <div className="space-y-4 py-4">
@@ -164,33 +167,33 @@ const getImageHash = useCallback((imageData: string) => {
               Based on your photo, we've prepared personalized recommendations.
             </AlertDescription>
           </Alert>
-          
+  
           <div className="space-y-4">
             <div>
               <h4 className="font-semibold mb-2">Diagnosis:</h4>
-              <p className="text-gray-700">{analysisResults.hairLossType}</p>
+              <p className="text-gray-700">{analysisResults?.hairLossType}</p>
             </div>
-            
+  
             <div>
               <h4 className="font-semibold mb-2">Severity Level:</h4>
-              <p className="text-gray-700">{analysisResults.severity}</p>
+              <p className="text-gray-700">{analysisResults?.severity}</p>
             </div>
-            
+  
             <div>
               <h4 className="font-semibold mb-2">Hair Coverage:</h4>
-              <p className="text-gray-700">{analysisResults.coverage}</p>
+              <p className="text-gray-700">{analysisResults?.coverage}</p>
             </div>
-            
+  
             <div>
               <h4 className="font-semibold mb-2">Recommendations:</h4>
               <ul className="list-disc pl-5 space-y-2">
-                {analysisResults.recommendations.map((rec, index) => (
+                {analysisResults?.recommendations?.map((rec, index) => (
                   <li key={index} className="text-gray-700">{rec}</li>
                 ))}
               </ul>
             </div>
           </div>
-
+  
           <Button 
             onClick={() => {
               setShowUploadModal(false);
@@ -203,9 +206,10 @@ const getImageHash = useCallback((imageData: string) => {
         </div>
       );
     }
-    
+  
     return null;
   };
+  
 
   const renderQuestionnaireContent = () => {
     switch (analysisState) {
