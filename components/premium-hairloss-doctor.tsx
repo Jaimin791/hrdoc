@@ -1,4 +1,3 @@
-// Part 1: Imports (unchanged)
 "use client";
 import React, { useState, useCallback } from 'react';
 import { 
@@ -16,17 +15,32 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// Part 2: Component initialization and state (unchanged)
+// Type definitions
+type AnalysisState = 'idle' | 'analyzing' | 'complete';
+
+interface AnalysisResult {
+  hairLossType: string;
+  severity: string;
+  coverage: string;
+  recommendations: string[];
+}
+
+interface Question {
+  id: string;
+  question: string;
+  options: string[];
+}
+
 const PremiumHairLossDoctor = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [analysisState, setAnalysisState] = useState('idle');
-  const [analysisResults, setAnalysisResults] = useState(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [analysisState, setAnalysisState] = useState<AnalysisState>('idle');
+  const [analysisResults, setAnalysisResults] = useState<AnalysisResult | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState({});
-  
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+
   const questions = [
     {
       id: 'age',
@@ -107,8 +121,8 @@ const PremiumHairLossDoctor = () => {
       setSelectedImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        if (reader.result) {
-          setPreviewUrl(reader.result.toString());
+        if (typeof reader.result === 'string') {
+          setPreviewUrl(reader.result);
         }
       };
       reader.onerror = () => console.error('File reading has failed');
@@ -117,7 +131,7 @@ const PremiumHairLossDoctor = () => {
       setAnalysisResults(null);
     }
   };
-  
+
   const handleUploadSubmit = useCallback(() => {
     setAnalysisState('analyzing');
   
@@ -158,7 +172,7 @@ const PremiumHairLossDoctor = () => {
       );
     }
   
-    if (analysisState === 'complete') {
+    if (analysisState === 'complete' && analysisResults) {
       return (
         <div className="space-y-4 py-4">
           <Alert className="bg-green-50 border-green-200">
@@ -171,23 +185,23 @@ const PremiumHairLossDoctor = () => {
           <div className="space-y-4">
             <div>
               <h4 className="font-semibold mb-2">Diagnosis:</h4>
-              <p className="text-gray-700">{analysisResults?.hairLossType}</p>
+              <p className="text-gray-700">{analysisResults.hairLossType}</p>
             </div>
   
             <div>
               <h4 className="font-semibold mb-2">Severity Level:</h4>
-              <p className="text-gray-700">{analysisResults?.severity}</p>
+              <p className="text-gray-700">{analysisResults.severity}</p>
             </div>
   
             <div>
               <h4 className="font-semibold mb-2">Hair Coverage:</h4>
-              <p className="text-gray-700">{analysisResults?.coverage}</p>
+              <p className="text-gray-700">{analysisResults.coverage}</p>
             </div>
   
             <div>
               <h4 className="font-semibold mb-2">Recommendations:</h4>
               <ul className="list-disc pl-5 space-y-2">
-                {analysisResults?.recommendations?.map((rec, index) => (
+                {analysisResults.recommendations.map((rec, index) => (
                   <li key={index} className="text-gray-700">{rec}</li>
                 ))}
               </ul>
@@ -209,7 +223,6 @@ const PremiumHairLossDoctor = () => {
   
     return null;
   };
-  
 
   const renderQuestionnaireContent = () => {
     switch (analysisState) {
@@ -221,6 +234,7 @@ const PremiumHairLossDoctor = () => {
           </div>
         );
       case 'complete':
+        if (!analysisResults) return null;
         return (
           <div className="space-y-4 py-4">
             <Alert className="bg-green-50 border-green-200">
@@ -292,30 +306,29 @@ const PremiumHairLossDoctor = () => {
     }
   };
 
-// Part 4: Return JSX with new footer
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <header className="bg-red-600 text-white py-4 px-6 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold">HairLoss Doctor AI</h1>
           <nav className="hidden md:flex space-x-6">
-  <a href="#" className="text-white hover:text-white px-4 py-2 relative group">
-    <span>About</span>
-    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-white scale-x-0 group-hover:scale-x-100 transition-transform"></span>
-  </a>
-  <a href="#" className="text-white hover:text-white px-4 py-2 relative group">
-    <span>Services</span>
-    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-white scale-x-0 group-hover:scale-x-100 transition-transform"></span>
-  </a>
-  <a href="#" className="text-white hover:text-white px-4 py-2 relative group">
-    <span>Success Stories</span>
-    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-white scale-x-0 group-hover:scale-x-100 transition-transform"></span>
-  </a>
-  <a href="#" className="text-white hover:text-white px-4 py-2 relative group">
-    <span>Blog</span>
-    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-white scale-x-0 group-hover:scale-x-100 transition-transform"></span>
-  </a>
-</nav>
+            <a href="#" className="text-white hover:text-white px-4 py-2 relative group">
+              <span>About</span>
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-white scale-x-0 group-hover:scale-x-100 transition-transform"></span>
+            </a>
+            <a href="#" className="text-white hover:text-white px-4 py-2 relative group">
+              <span>Services</span>
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-white scale-x-0 group-hover:scale-x-100 transition-transform"></span>
+            </a>
+            <a href="#" className="text-white hover:text-white px-4 py-2 relative group">
+              <span>Success Stories</span>
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-white scale-x-0 group-hover:scale-x-100 transition-transform"></span>
+            </a>
+            <a href="#" className="text-white hover:text-white px-4 py-2 relative group">
+              <span>Blog</span>
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-white scale-x-0 group-hover:scale-x-100 transition-transform"></span>
+            </a>
+          </nav>
         </div>
       </header>
 
