@@ -92,15 +92,16 @@ const PremiumHairLossDoctor = () => {
   ];
 
 // Part 3: All functions (unchanged)
-  const getImageHash = useCallback((imageData) => {
-    let hash = 0;
-    for (let i = 0; i < imageData.length; i++) {
-      const char = imageData.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash);
-  }, []);
+const getImageHash = useCallback((imageData: string) => {
+  let hash = 0;
+  for (let i = 0; i < imageData.length; i++) {
+    const char = imageData.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}, []);
+
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
