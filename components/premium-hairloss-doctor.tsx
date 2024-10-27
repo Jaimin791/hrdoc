@@ -1,9 +1,11 @@
 "use client";
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   Camera, ArrowRight, Star, 
   User, X, FileImage,
-  Loader2
+  Loader2,
+  Send,
+  MessageCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +16,354 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+//AI chatbot
+// Chat responses data
+const chatResponses = {
+  initial_greeting: {
+    message: "Hello! I'm Dr. Smith, your AI hair loss specialist. How can I assist you today?",
+    follow_ups: [
+      "Are you experiencing any specific hair or scalp concerns?",
+      "Would you like to learn about our treatment options?",
+      "Would you like a personalized hair assessment?"
+    ]
+  },
+  symptoms: {
+    hair_loss: {
+      patterns: {
+        receding: {
+          message: "A receding hairline can be caused by various factors. Can you tell me when you first noticed this change?",
+          follow_up: {
+            recent: "Recent changes might be more responsive to early intervention. Have you noticed any other changes in your hair or scalp?",
+            gradual: "Gradual recession is often associated with androgenetic alopecia. Is there any family history of similar patterns?",
+            rapid: "Rapid changes might indicate an underlying condition. Have you experienced any recent stress or health changes?"
+          }
+        },
+        crown: {
+          message: "Thinning at the crown is a common pattern. When did you first notice this?",
+          follow_up: {
+            early: "Early intervention can be very effective. Have you tried any treatments so far?",
+            progressive: "Progressive thinning might benefit from combination therapy. Would you like to explore treatment options?",
+            advanced: "There are several effective treatments for advanced thinning. Shall we discuss your options?"
+          }
+        },
+        diffuse: {
+          message: "Diffuse thinning can have various causes. Have you noticed any specific triggers?",
+          follow_up: {
+            stress: "Stress-related hair loss often improves with stress management. Would you like to discuss treatment approaches?",
+            medical: "This pattern might be related to underlying health factors. Have you had any recent health changes?",
+            unknown: "Let's work together to identify potential causes. Can you tell me about your lifestyle and daily routine?"
+          }
+        }
+      }
+    },
+    scalp_conditions: {
+      dandruff: {
+        message: "I understand you're experiencing dandruff. Is it accompanied by itching or redness?",
+        follow_up: {
+          mild: "Mild dandruff often responds well to specialized shampoos. How often do you currently wash your hair?",
+          moderate: "Moderate cases might need targeted treatment. Is the flaking worse in any particular area?",
+          severe: "Severe cases might indicate seborrheic dermatitis. Have you noticed any patterns in when it worsens?"
+        }
+      },
+      itching: {
+        message: "Scalp itching can be quite bothersome. Is it constant or does it come and go?",
+        follow_up: {
+          constant: "Persistent itching might indicate a specific condition. Are there any visible signs on your scalp?",
+          intermittent: "Intermittent itching could be triggered by specific factors. Have you noticed any patterns?",
+          recent: "Recent onset of itching might be related to changes in products or environment. Have you made any recent changes?"
+        }
+      },
+      oily: {
+        message: "An oily scalp can affect hair health. How often do you currently wash your hair?",
+        follow_up: {
+          daily: "Daily washing might affect your scalp's natural oil balance. What type of shampoo do you use?",
+          frequent: "Frequent washing might be compensating for excess oil. Have you noticed any correlation with hair loss?",
+          infrequent: "Infrequent washing might allow oil buildup. Would you like to discuss optimal washing frequency?"
+        }
+      }
+    }
+  }
+};
+
+// AI Chatbot Component
+const formatMessageText = (text: string) => {
+  if (text.includes('[Book Appointment]')) {
+    return text.replace(
+      '[Book Appointment]',
+      '<a href="https://hrdoc-appointment.vercel.app/" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700 underline">Book Appointment</a>'
+    );
+  }
+  return text;
+};
+
+const AIChatbot = () => {
+  const [isOpen, setIsOpen] = useState(true);
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      text: "Hello! I'm Dr. Smith, your AI hair loss specialist. How can I assist you today?",
+      sender: 'bot',
+      timestamp: new Date()
+    }
+  ]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [conversationContext, setConversationContext] = useState({
+    symptomsDiscussed: new Set(),
+    messageCount: 0,
+    needsConsult: false,
+    appointmentSuggested: false
+  });
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const generateResponse = (userInput) => {
+    const input = userInput.toLowerCase();
+    let response = '';
+
+    // Update context for message count and discussed symptoms
+    setConversationContext(prev => ({
+      ...prev,
+      messageCount: prev.messageCount + 1,
+      symptomsDiscussed: new Set([...prev.symptomsDiscussed, getConcernType(input)])
+    }));
+
+    // Helper function to check for keyword matches
+    const checkKeywords = (keywords) => keywords.some(keyword => input.includes(keyword));
+
+    // Function to determine the type of hair or scalp concern
+    function getConcernType(input) {
+      if (checkKeywords(['receding', 'hairline', 'forehead'])) return 'hairline';
+      if (checkKeywords(['crown', 'top', 'vertex'])) return 'crown';
+      if (checkKeywords(['overall', 'diffuse', 'everywhere'])) return 'diffuse';
+      if (checkKeywords(['dandruff', 'flakes', 'flaking'])) return 'dandruff';
+      if (checkKeywords(['itch', 'itchy', 'itching'])) return 'itching';
+      if (checkKeywords(['oily', 'greasy', 'oil'])) return 'oily';
+      return 'general';
+    }
+
+    // Generate responses based on the detected keywords
+    if (checkKeywords(['receding', 'hairline', 'forehead'])) {
+      response = "A receding hairline is often caused by genetics and hormones. Treatments may include topical medications or certain procedures. Would you like to know more about these options?";
+    } else if (checkKeywords(['crown', 'top', 'vertex'])) {
+      response = "Hair thinning around the crown can be common. We could explore topical solutions or, in some cases, lifestyle adjustments. Is this area your main concern?";
+    } else if (checkKeywords(['overall', 'diffuse', 'everywhere'])) {
+      response = "Diffuse hair loss can be due to multiple factors like diet, stress, or hormonal imbalance. A consultation could help determine the cause. Would you like guidance on lifestyle adjustments?";
+    } else if (checkKeywords(['dandruff', 'flakes', 'flaking'])) {
+      response = "Dandruff is often linked to scalp health. Specialized shampoos or a change in scalp care might help. Have you tried any treatments before?";
+    } else if (checkKeywords(['itch', 'itchy', 'itching'])) {
+      response = "An itchy scalp could be due to dryness or sensitivity. I can suggest some soothing products if you'd like?";
+    } else if (checkKeywords(['oily', 'greasy', 'oil'])) {
+      response = "Oily scalps may benefit from lightweight products and specific cleansing routines. Interested in some product recommendations?";
+    } else if (checkKeywords(['medicine', 'medication', 'drug'])) {
+      response = "Medications for hair loss are available but should be discussed with a specialist. I can provide some basic info if you'd like.";
+    } else if (checkKeywords(['natural', 'herbal', 'organic'])) {
+      response = "Natural treatments can be effective for some. Herbal oils and dietary changes might help. Would you like suggestions on specific options?";
+    } else if (checkKeywords(['procedure', 'surgery', 'transplant', 'prp', 'laser'])) {
+      response = "Procedures like PRP or hair transplants can be effective in certain cases. I recommend a consultation for a personalized approach. Interested?";
+    } else if (checkKeywords(['stress', 'anxiety', 'worried'])) {
+      response = "Stress can impact hair health significantly. Mindfulness practices and stress management can help. Would you like some relaxation techniques?";
+    } else if (checkKeywords(['diet', 'food', 'eating', 'nutrition'])) {
+      response = "A balanced diet is crucial for hair health. Nutrients like iron and vitamin D can make a difference. Shall we discuss dietary recommendations?";
+    } else if (checkKeywords(['exercise', 'workout', 'activity'])) {
+      response = "Regular exercise supports circulation, which benefits hair health. Let me know if you'd like tips on maintaining a hair-healthy lifestyle.";
+    } else if (input.length < 2) {
+      response = "Could you tell me more about any other hair or scalp concerns you'd like to discuss?";
+    } else {
+      response = "I understand you're concerned about your hair health. Could you tell me more about your specific symptoms or what you'd like to learn about?";
+    }
+
+    // Check if an appointment suggestion is needed
+    const shouldSuggestConsult = conversationContext.symptomsDiscussed.size >= 2 || 
+                                 conversationContext.messageCount >= 4;
+
+    if (shouldSuggestConsult && !conversationContext.appointmentSuggested) {
+      setConversationContext(prev => ({
+        ...prev,
+        appointmentSuggested: true
+      }));
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const appointmentTime = tomorrow.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      const appointmentDate = tomorrow.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      response += `\n\nBased on your symptoms, I recommend a professional consultation. Would you like me to schedule an appointment? I have availability on ${appointmentDate} at ${appointmentTime}.`;
+    }
+
+    // Handle appointment confirmation
+    if (conversationContext.appointmentSuggested && checkKeywords(['yes', 'confirm'])) {
+      setConversationContext(prev => ({
+        ...prev,
+        appointmentSuggested: false
+      }));
+      response = "Your appointment is booked. Looking forward to assisting you further!";
+    }
+
+    return response;
+  };
+
+  // Function to handle sending the user's message and receiving a response
+  const sendMessage = () => {
+    if (inputMessage.trim()) {
+      const newMessage = {
+        id: messages.length + 1,
+        text: inputMessage,
+        sender: 'user',
+        timestamp: new Date()
+      };
+      setMessages([...messages, newMessage]);
+      setInputMessage('');
+      setIsTyping(true);
+
+      setTimeout(() => {
+        const botResponse = generateResponse(newMessage.text);
+        setMessages(prevMessages => [
+          ...prevMessages,
+          { id: prevMessages.length + 1, text: botResponse, sender: 'bot', timestamp: new Date() }
+        ]);
+        setIsTyping(false);
+      }, 1000);
+    }
+  };
+  
+  
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSendMessage = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (inputMessage.trim()) {
+      const userMessage = {
+        id: messages.length + 1,
+        text: inputMessage.trim(),
+        sender: 'user',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, userMessage]);
+      setInputMessage('');
+      
+      setIsTyping(true);
+      setTimeout(() => {
+        const botMessage = {
+          id: messages.length + 2,
+          text: generateResponse(inputMessage),
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, botMessage]);
+        setIsTyping(false);
+      }, 1000);
+    }
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  if (!isOpen) {
+    return (
+      <div className="fixed bottom-20 right-6 z-50">
+        <Button 
+          onClick={() => setIsOpen(true)}
+          className="bg-red-600 hover:bg-red-700 w-12 h-12 flex items-center justify-center shadow-lg"
+        >
+          <Send className="h-5 w-5" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-20 right-6 w-96 bg-white rounded-lg shadow-xl z-50 overflow-hidden">
+      <div className="bg-red-600 text-white p-4 flex justify-between items-center">
+        <div className="flex items-center space-x-2">
+          <User className="h-6 w-6" />
+          <div>
+            <p className="font-semibold">Dr. AI Assistant</p>
+            <p className="text-xs">Hair Loss Specialist</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setIsOpen(false)}
+          className="text-white hover:text-gray-200"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="h-96 overflow-y-auto p-4 bg-gray-50">
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
+          >
+            <div
+              className={`max-w-[80%] rounded-lg p-3 ${
+                message.sender === 'user'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-white text-gray-800 shadow'
+              }`}
+            >
+              <p className="whitespace-pre-line">{message.text}</p>
+              <p className="text-xs mt-1 opacity-70">
+                {formatTime(message.timestamp)}
+              </p>
+            </div>
+          </div>
+        ))}
+        {isTyping && (
+          <div className="flex justify-start mb-4">
+            <div className="bg-white rounded-lg p-3 shadow">
+              <div className="flex space-x-2">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }} />
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <form onSubmit={handleSendMessage} className="p-4 border-t">
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            placeholder="Type your message..."
+            className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
+          />
+          <Button 
+            type="submit"
+            className="bg-red-600 hover:bg-red-700"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};
 
 // Type definitions
 type AnalysisState = 'idle' | 'analyzing' | 'complete';
@@ -308,6 +658,13 @@ const PremiumHairLossDoctor = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
+      <div className="min-h-screen bg-white flex flex-col">
+        {/* Your existing header */}
+        {/* Your existing dialogs */}
+        {/* Your existing section */}
+         {/* Add this line before the footer */}
+        {/* Your existing footer */}
+      
       <header className="bg-red-600 text-white py-4 px-6 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold">HairLoss Doctor AI</h1>
@@ -440,15 +797,18 @@ const PremiumHairLossDoctor = () => {
           </div>
         </div>
       </section>
+      <AIChatbot />
+      </div>
       {/* New Footer Section */}
-      <footer className="bg-red-600 text-white py-3">
+      <footer className="fixed bottom-0 left-0 w-full bg-red-600 text-white py-3 z-40">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex justify-center items-center text-sm">
             <p>Powered by Innocode Solutions © {new Date().getFullYear()}</p>
           </div>
         </div>
       </footer>
-      </div>
+    </div>
+
   );
 };
 
