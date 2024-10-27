@@ -129,10 +129,10 @@ const AIChatbot = () => {
     }));
 
     // Helper function to check for keyword matches
-    const checkKeywords = (keywords) => keywords.some(keyword => input.includes(keyword));
+    const checkKeywords = (keywords: string[]) => keywords.some(keyword => input.includes(keyword));
 
     // Function to determine the type of hair or scalp concern
-    function getConcernType(input) {
+    function getConcernType(input: string): string {
       if (checkKeywords(['receding', 'hairline', 'forehead'])) return 'hairline';
       if (checkKeywords(['crown', 'top', 'vertex'])) return 'crown';
       if (checkKeywords(['overall', 'diffuse', 'everywhere'])) return 'diffuse';
@@ -298,7 +298,7 @@ const AIChatbot = () => {
         <div className="flex items-center space-x-2">
           <User className="h-6 w-6" />
           <div>
-            <p className="font-semibold">Dr. AI Assistant</p>
+            <p className="font-semibold">Dr. Smith</p>
             <p className="text-xs">Hair Loss Specialist</p>
           </div>
         </div>
