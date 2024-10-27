@@ -117,7 +117,7 @@ const AIChatbot = () => {
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const generateResponse = (userInput) => {
+  const generateResponse = (userInput: string) => {
     const input = userInput.toLowerCase();
     let response = '';
 
