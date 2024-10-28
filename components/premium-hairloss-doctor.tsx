@@ -113,79 +113,102 @@ const AIChatbot = () => {
     symptomsDiscussed: new Set(),
     messageCount: 0,
     needsConsult: false,
-    appointmentSuggested: false
+    appointmentSuggested: false,
+    recommendedProducts: []
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const hairLossProducts = {
+    early: [
+      'HairLoss Doctor Serum 2.5 Neo - Apply twice daily',
+      'HairLoss Doctor Biotin Complex Plus - 1 tablet daily',
+      'HairLoss Doctor Scalp Therapy Foam - Use during evening routine'
+    ],
+    moderate: [
+      'HairLoss Doctor Advanced Formula 5.0 - Morning application',
+      'HairLoss Doctor DHT Blocker Elite - 2 capsules daily',
+      'HairLoss Doctor Revitalizing Shampoo Pro - Use 3x weekly'
+    ],
+    severe: [
+      'HairLoss Doctor Maximum Strength Solution 7.5 - Twice daily',
+      'HairLoss Doctor Nutrient Fusion Tablets - Morning supplement',
+      'HairLoss Doctor Scalp Energizing Serum - Evening routine'
+    ],
+    scalp: [
+      'HairLoss Doctor Soothing Scalp Treatment - Apply as needed',
+      'HairLoss Doctor Anti-Dandruff Complex - Use 2x weekly',
+      'HairLoss Doctor Scalp Balancing Shampoo - Regular use'
+    ]
+  };
 
   const generateResponse = (userInput: string) => {
     const input = userInput.toLowerCase();
     let response = '';
+    let productRecommendations: string[] = [];
 
-    // Update context for message count and discussed symptoms
+    // Update context
     setConversationContext(prev => ({
       ...prev,
       messageCount: prev.messageCount + 1,
       symptomsDiscussed: new Set([...prev.symptomsDiscussed, getConcernType(input)])
     }));
 
-    // Helper function to check for keyword matches
     const checkKeywords = (keywords: string[]) => keywords.some(keyword => input.includes(keyword));
 
-    // Function to determine the type of hair or scalp concern
+    // Enhanced keyword detection
     function getConcernType(input: string): string {
-      if (checkKeywords(['receding', 'hairline', 'forehead'])) return 'hairline';
-      if (checkKeywords(['crown', 'top', 'vertex'])) return 'crown';
-      if (checkKeywords(['overall', 'diffuse', 'everywhere'])) return 'diffuse';
-      if (checkKeywords(['dandruff', 'flakes', 'flaking'])) return 'dandruff';
-      if (checkKeywords(['itch', 'itchy', 'itching'])) return 'itching';
-      if (checkKeywords(['oily', 'greasy', 'oil'])) return 'oily';
+      if (checkKeywords(['bald', 'baldness', 'male pattern', 'mpb'])) return 'baldness';
+      if (checkKeywords(['receding', 'hairline', 'forehead', 'temple'])) return 'hairline';
+      if (checkKeywords(['crown', 'top', 'vertex', 'thinning'])) return 'crown';
+      if (checkKeywords(['overall', 'diffuse', 'everywhere', 'hair fall', 'falling'])) return 'diffuse';
+      if (checkKeywords(['dandruff', 'flakes', 'flaking', 'dry scalp'])) return 'dandruff';
+      if (checkKeywords(['itch', 'itchy', 'itching', 'irritated'])) return 'itching';
+      if (checkKeywords(['oily', 'greasy', 'oil', 'sebum'])) return 'oily';
+      if (checkKeywords(['patches', 'spot', 'circular', 'alopecia areata'])) return 'patches';
       return 'general';
     }
 
-    // Generate responses based on the detected keywords
-    if (checkKeywords(['receding', 'hairline', 'forehead'])) {
-      response = "A receding hairline is often caused by genetics and hormones. Treatments may include topical medications or certain procedures. Would you like to know more about these options?";
-    } else if (checkKeywords(['crown', 'top', 'vertex'])) {
-      response = "Hair thinning around the crown can be common. We could explore topical solutions or, in some cases, lifestyle adjustments. Is this area your main concern?";
-    } else if (checkKeywords(['overall', 'diffuse', 'everywhere'])) {
-      response = "Diffuse hair loss can be due to multiple factors like diet, stress, or hormonal imbalance. A consultation could help determine the cause. Would you like guidance on lifestyle adjustments?";
-    } else if (checkKeywords(['dandruff', 'flakes', 'flaking'])) {
-      response = "Dandruff is often linked to scalp health. Specialized shampoos or a change in scalp care might help. Have you tried any treatments before?";
-    } else if (checkKeywords(['itch', 'itchy', 'itching'])) {
-      response = "An itchy scalp could be due to dryness or sensitivity. I can suggest some soothing products if you'd like?";
-    } else if (checkKeywords(['oily', 'greasy', 'oil'])) {
-      response = "Oily scalps may benefit from lightweight products and specific cleansing routines. Interested in some product recommendations?";
-    } else if (checkKeywords(['medicine', 'medication', 'drug'])) {
-      response = "Medications for hair loss are available but should be discussed with a specialist. I can provide some basic info if you'd like.";
-    } else if (checkKeywords(['natural', 'herbal', 'organic'])) {
-      response = "Natural treatments can be effective for some. Herbal oils and dietary changes might help. Would you like suggestions on specific options?";
-    } else if (checkKeywords(['procedure', 'surgery', 'transplant', 'prp', 'laser'])) {
-      response = "Procedures like PRP or hair transplants can be effective in certain cases. I recommend a consultation for a personalized approach. Interested?";
-    } else if (checkKeywords(['stress', 'anxiety', 'worried'])) {
-      response = "Stress can impact hair health significantly. Mindfulness practices and stress management can help. Would you like some relaxation techniques?";
-    } else if (checkKeywords(['diet', 'food', 'eating', 'nutrition'])) {
-      response = "A balanced diet is crucial for hair health. Nutrients like iron and vitamin D can make a difference. Shall we discuss dietary recommendations?";
-    } else if (checkKeywords(['exercise', 'workout', 'activity'])) {
-      response = "Regular exercise supports circulation, which benefits hair health. Let me know if you'd like tips on maintaining a hair-healthy lifestyle.";
+    // Enhanced response generation with product recommendations
+    if (checkKeywords(['bald', 'baldness', 'male pattern', 'mpb'])) {
+      response = "Male pattern baldness is a common genetic condition. Based on your description, I recommend:";
+      productRecommendations = hairLossProducts.moderate;
+    } else if (checkKeywords(['receding', 'hairline', 'forehead', 'temple'])) {
+      response = "For receding hairline concerns, I suggest trying our early intervention products:";
+      productRecommendations = hairLossProducts.early;
+    } else if (checkKeywords(['crown', 'top', 'vertex', 'thinning'])) {
+      response = "For crown thinning, these products have shown excellent results:";
+      productRecommendations = hairLossProducts.moderate;
+    } else if (checkKeywords(['overall', 'diffuse', 'everywhere', 'hair fall', 'falling'])) {
+      response = "For widespread thinning, I recommend our comprehensive treatment approach:";
+      productRecommendations = hairLossProducts.severe;
+    } else if (checkKeywords(['dandruff', 'flakes', 'flaking', 'dry scalp', 'itch', 'itchy', 'itching', 'irritated'])) {
+      response = "For scalp concerns, these specialized products can help:";
+      productRecommendations = hairLossProducts.scalp;
+    } else if (checkKeywords(['oily', 'greasy', 'oil', 'sebum'])) {
+      response = "For oily scalp management, try these balancing products:";
+      productRecommendations = hairLossProducts.scalp;
     } else if (input.length < 2) {
-      response = "Could you tell me more about any other hair or scalp concerns you'd like to discuss?";
+      response = "Could you tell me more about your hair or scalp concerns?";
     } else {
-      response = "I understand you're concerned about your hair health. Could you tell me more about your specific symptoms or what you'd like to learn about?";
+      response = "I understand you're concerned about your hair health. Could you describe your specific symptoms?";
     }
 
-    // Check if an appointment suggestion is needed
+    // Add product recommendations to response
+    if (productRecommendations.length > 0) {
+      response += "\n\nRecommended products:\n" + productRecommendations.map(product => `• ${product}`).join('\n');
+      response += "\n\nWould you like to learn more about any of these products?";
+    }
+
+    // Appointment suggestion logic
     const shouldSuggestConsult = conversationContext.symptomsDiscussed.size >= 2 || 
-                                 conversationContext.messageCount >= 4;
+                                conversationContext.messageCount >= 4;
 
     if (shouldSuggestConsult && !conversationContext.appointmentSuggested) {
       setConversationContext(prev => ({
         ...prev,
         appointmentSuggested: true
       }));
-      const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
+      const tomorrow = new Date(new Date().setDate(new Date().getDate() + 1));
       const appointmentTime = tomorrow.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
@@ -197,16 +220,7 @@ const AIChatbot = () => {
         day: 'numeric'
       });
 
-      response += `\n\nBased on your symptoms, I recommend a professional consultation. Would you like me to schedule an appointment? I have availability on ${appointmentDate} at ${appointmentTime}.`;
-    }
-
-    // Handle appointment confirmation
-    if (conversationContext.appointmentSuggested && checkKeywords(['yes', 'confirm'])) {
-      setConversationContext(prev => ({
-        ...prev,
-        appointmentSuggested: false
-      }));
-      response = "Your appointment is booked. Looking forward to assisting you further!";
+      response += `\n\nFor a personalized treatment plan, I recommend a professional consultation. Would you like to schedule an appointment for ${appointmentDate} at ${appointmentTime}?`;
     }
 
     return response;
